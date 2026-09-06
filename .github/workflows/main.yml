@@ -69,7 +69,7 @@ jobs:
           $KATALON_EXEC \
             -noSplash \
             -runMode=console \
-            -projectPath="$(pwd)/AAF Automation Phase 1.prj" \
+            -projectPath="$(pwd)/Bitbar_Katalon_SetUp.prj" \
             -retry=0 \
             -testSuitePath="Test Suites/BP_Creation" \
             -executionProfile="QA" \
