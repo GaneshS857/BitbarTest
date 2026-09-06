@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<TestCaseEntity>
+   <description>Open the Sauce Demo public web application, verify that the page loads, and close the browser.</description>
+   <name>Bitbar_sample_url_test</name>
+   <tag>GenAI</tag>
+   <comment></comment>
+   <origin>STUDIOASSIST</origin>
+   <recordOption>OTHER</recordOption>
+   <testCaseGuid>43b48f66-246f-4fed-bf0d-733c9e84e6e3</testCaseGuid>
+</TestCaseEntity>
