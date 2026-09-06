@@ -11,7 +11,7 @@ jobs:
       # Secrets (GitHub Actions Secrets)
       AAF_EMAIL: ${{ secrets.AAF_EMAIL }}
       AAF_PASSWORD: ${{ secrets.AAF_PASSWORD }}
-      KATALON_API_KEY: ${{secrets.KATALON_API_KEY}}
+      KATALON_API_KEY: ${{secrets.API_KEY}}
 
       # Non-sensitive configuration
       AAF_BASE_URL: "https://corp-aaf-ng-ui-qa01.shd-rosa-test-cc.awscpggpc.ca"
@@ -46,7 +46,7 @@ jobs:
             -testSuitePath="Test Suites/Bitbar_Test_Suite" \
             -executionProfile="default" \
             -browserType="cbt-chrome" \
-            -apiKey="${{secrets.API_KEY}}"
+            -apiKey=${{secrets.API_KEY}}
 
       - name: Upload Run Artifacts
         if: always()
