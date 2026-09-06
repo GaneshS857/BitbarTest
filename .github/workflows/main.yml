@@ -35,6 +35,7 @@ jobs:
 
       - name: Run Katalon Test Suite
         uses: Katalon-studio/Katalon-studio-github-action@v4.0
+        env: KATALON_API_KEY: ${{secrets.KATALON_API_KEY}}
         with:
          version: '11.4.0'
          projectPath: '${{github.workspace}}'
@@ -46,7 +47,7 @@ jobs:
             -testSuitePath="Test Suites/Bitbar_Test_Suite" \
             -executionProfile="default" \
             -browserType="cbt-chrome" \
-            -apiKey="${{secrets.KATALON_API_KEY}}"
+            -apiKey="${{KATALON_API_KEY}}"
 
       - name: Upload Run Artifacts
         if: always()
