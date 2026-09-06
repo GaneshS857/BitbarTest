@@ -46,7 +46,7 @@ jobs:
             -testSuitePath="Test Suites/Bitbar_Test_Suite" \
             -executionProfile="default" \
             -browserType="cbt-chrome" \
-            -apiKey="${{ secrets.KATALON_API_KEY }}"
+            -apiKey=${{ secrets.KATALON_API_KEY }}
 
       - name: Upload Run Artifacts
         if: always()
