@@ -72,8 +72,8 @@ jobs:
             -projectPath="$(pwd)/Bitbar_Katalon_SetUp.prj" \
             -retry=0 \
             -testSuitePath="Test Suites/Bitbar_Test_Suite" \
-            -executionProfile="QA" \
-            -browserType="Chrome Headless" \
+            -executionProfile="default" \
+            -browserType="cbt-chrome" \
             -apiKey="${{ secrets.KATALON_API_KEY }}"
 
       - name: Upload Run Artifacts
