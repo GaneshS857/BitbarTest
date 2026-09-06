@@ -71,7 +71,7 @@ jobs:
             -runMode=console \
             -projectPath="$(pwd)/Bitbar_Katalon_SetUp.prj" \
             -retry=0 \
-            -testSuitePath="Test Suites/BP_Creation" \
+            -testSuitePath="Test Suites/Bitbar_Test_Suite" \
             -executionProfile="QA" \
             -browserType="Chrome Headless" \
             -apiKey="${{ secrets.KATALON_API_KEY }}"
