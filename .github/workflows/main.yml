@@ -1,23 +1,17 @@
 name: Run Katalon On BitBar
 
 on:
-  workflow_dispatch: {}
+  workflow_dispatch:
 
 jobs:
   run-tests:
     runs-on: ubuntu-latest
 
     env:
-      # Secrets (GitHub Actions Secrets)
       AAF_EMAIL: ${{ secrets.AAF_EMAIL }}
       AAF_PASSWORD: ${{ secrets.AAF_PASSWORD }}
-      KATALON_API_KEY: ${{ secrets.API_KEY }}
-
-      # Non-sensitive configuration
       AAF_BASE_URL: "https://corp-aaf-ng-ui-qa01.shd-rosa-test-cc.awscpggpc.ca"
       GRAPH_MAILBOX_UPN: "SF_AAF_No-Reply_NP@canadapost.postescanada.ca"
-
-      # KRE folder after extraction
       KATALON_FOLDER: "KRE"
 
     steps:
@@ -33,21 +27,115 @@ jobs:
       - name: Verify Java Installation
         run: java -version
 
+      - name: Install Xvfb (Virtual Display)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y xvfb x11-utils
+      - name: Start Xvfb
+        run: |
+          Xvfb :99 -screen 0 1024x768x24 > /dev/null 2>&1 &
+          sleep 2
+      - name: Capture Execution Performance Metrics
+        run: |
+          mkdir -p ExecutionMetrics
+          (
+            PREV_IDLE=0
+            PREV_TOTAL=0
+            while true; do
+              CPU_LINE=$(grep '^cpu ' /proc/stat)
+              read -r _ USER NICE SYSTEM IDLE IOWAIT IRQ SOFTIRQ STEAL _ <<< "$CPU_LINE"
+              TOTAL=$((USER + NICE + SYSTEM + IDLE + IOWAIT + IRQ + SOFTIRQ + STEAL))
+              if [ "$PREV_TOTAL" -ne 0 ]; then
+                TOTAL_DIFF=$((TOTAL - PREV_TOTAL))
+                IDLE_DIFF=$((IDLE - PREV_IDLE))
+                if [ "$TOTAL_DIFF" -gt 0 ]; then
+                  CPU=$(awk "BEGIN {printf \"%.2f\", (1 - $IDLE_DIFF / $TOTAL_DIFF) * 100}")
+                else
+                  CPU="0.00"
+                fi
+              else
+                CPU="0.00"
+              fi
+              MEM_TOTAL_KB=$(awk '/MemTotal:/ {print $2}' /proc/meminfo)
+              MEM_AVAILABLE_KB=$(awk '/MemAvailable:/ {print $2}' /proc/meminfo)
+              MEM_USED_KB=$((MEM_TOTAL_KB - MEM_AVAILABLE_KB))
+              MEM_USED_MB=$((MEM_USED_KB / 1024))
+              echo "$(date '+%Y-%m-%d %H:%M:%S') | CPU: ${CPU}% | Memory: ${MEM_USED_MB} MB" >> ExecutionMetrics/resource_usage.log
+              PREV_IDLE=$IDLE
+              PREV_TOTAL=$TOTAL
+              sleep 5
+            done
+          ) &
+          echo $! > ExecutionMetrics/monitor.pid
+          date +%s > ExecutionMetrics/start_time
       - name: Run Katalon Test Suite
-        uses: Katalon-studio/Katalon-studio-github-action@v4.0
+        uses: katalon-studio/katalon-studio-github-action@v5.0
+        env:
+          DISPLAY: :99
+          NO_AT_BRIDGE: "1"
         with:
-          version: '11.4.0'
+          version: '10.4.3'
           projectPath: '${{ github.workspace }}'
           args: >
-            -noSplash \
-            -runMode=console \
-            -projectPath="$(pwd)/Bitbar_Katalon_SetUp.prj" \
-            -retry=0 \
-            -testSuitePath="Test Suites/Bitbar_Test_Suite" \
-            -executionProfile="default" \
-            -browserType="cbt-chrome" \
-            -apiKey=${{ secrets.API_KEY }}
-
+            -noSplash 
+            -retry=0 
+            -testSuitePath="Test Suites/Bitbar_Test_Suite" 
+            -executionProfile="default" 
+            -browserType="cbt-chrome" 
+            -apiKey="${{ secrets.API_KEY }}"
+      - name: Generate Execution Performance Summary
+        if: always()
+        run: |
+          if [ -f ExecutionMetrics/monitor.pid ]; then
+            kill $(cat ExecutionMetrics/monitor.pid) || true
+          fi
+          START=$(cat ExecutionMetrics/start_time)
+          END=$(date +%s)
+          DURATION=$((END - START))
+          AVG_CPU=$(awk -F'CPU: |% |Memory:' '
+            /CPU:/ {sum += $2; count++}
+            END {
+              if (count > 0) printf "%.2f", sum / count;
+              else print "0"
+            }' ExecutionMetrics/resource_usage.log)
+          PEAK_CPU=$(awk -F'CPU: |% |Memory:' '
+            /CPU:/ {if ($2 > max) max = $2}
+            END {printf "%.2f", max}' ExecutionMetrics/resource_usage.log)
+          AVG_MEM=$(awk -F'Memory: | MB' '
+            /Memory:/ {sum += $2; count++}
+            END {
+              if (count > 0) printf "%.0f", sum / count;
+              else print "0"
+            }' ExecutionMetrics/resource_usage.log)
+          PEAK_MEM=$(awk -F'Memory: | MB' '
+            /Memory:/ {if ($2 > max) max = $2}
+            END {printf "%.0f", max}' ExecutionMetrics/resource_usage.log)
+          {
+            echo "Execution Performance Summary"
+            echo "============================="
+            echo "Duration: $((DURATION / 60)) minutes $((DURATION % 60)) seconds"
+            echo ""
+            echo "CPU Usage"
+            echo "Average: ${AVG_CPU}%"
+            echo "Peak: ${PEAK_CPU}%"
+            echo ""
+            echo "Memory Usage"
+            echo "Average: ${AVG_MEM} MB"
+            echo "Peak: ${PEAK_MEM} MB"
+          } > ExecutionMetrics/execution_summary.txt
+      - name: Create Required Folders and Consolidated Report
+        if: always()
+        run: |
+          mkdir -p Reports
+          mkdir -p Downloads
+          mkdir -p ActualJSON
+          mkdir -p ComparisonResults
+          REPORT_FILE=$(find Reports -type f -name "*.html" | head -n 1)
+          if [ -n "$REPORT_FILE" ]; then
+            cp "$REPORT_FILE" ComparisonResults/Consolidated_Report.html
+          else
+            echo "<html><body><h1>No HTML report generated</h1></body></html>" > ComparisonResults/Consolidated_Report.html
+          fi
       - name: Upload Run Artifacts
         if: always()
         uses: actions/upload-artifact@v4
@@ -58,6 +146,7 @@ jobs:
             Downloads/
             ActualJSON/
             ComparisonResults/
+            ExecutionMetrics/
           if-no-files-found: ignore
           retention-days: 14
 
