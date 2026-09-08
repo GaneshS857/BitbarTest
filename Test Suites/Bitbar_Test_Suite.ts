@@ -14,7 +14,7 @@
    <rerunImmediately>true</rerunImmediately>
    <testSuiteGuid>f79e07b1-fe7b-4b90-84a8-f5f65bf93f6c</testSuiteGuid>
    <testCaseLink>
-      <guid>158a6188-3083-49c9-b001-daeeebe008d5</guid>
+      <guid>2dbe3208-5980-40f8-a7af-a7d3fef388cd</guid>
       <isReuseDriver>false</isReuseDriver>
       <isRun>true</isRun>
       <testCaseId>Test Cases/Bitbar_sample_url_test</testCaseId>
